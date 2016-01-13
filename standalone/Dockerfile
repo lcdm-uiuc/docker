@@ -45,8 +45,7 @@ RUN useradd -m -s /bin/bash -N -u $NB_UID $NB_USER && \
 USER data_scientist
 
 # Setup data_scientist home directory
-RUN mkdir /home/$NB_USER && \
-    mkdir /home/$NB_USER/.jupyter && \
+RUN mkdir /home/$NB_USER/.jupyter && \
     mkdir /home/$NB_USER/.local
 
 # Install conda as data_scientist
@@ -78,6 +77,7 @@ RUN conda install --yes \
     'numba=0.22*' \
     'bokeh=0.10*' \
     beautiful-soup \
+    pytables \
     && conda clean -yt
 
 # Configure container startup as root
