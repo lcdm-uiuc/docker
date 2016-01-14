@@ -19,6 +19,8 @@ RUN apt-get update && apt-get install -yq --no-install-recommends \
     sudo \
     locales \
     libxrender1 \
+    libglib2.0-0 \
+    libxext6 \
     && apt-get clean
 RUN echo "en_US.UTF-8 UTF-8" > /etc/locale.gen && \
     locale-gen
