@@ -15,9 +15,10 @@ RUN apt-get update && apt-get install -yq --no-install-recommends \
     ca-certificates \
     bzip2 \
     unzip \
+    libsm6 \
     sudo \
     locales \
-    libglib2.0-0 \
+    libxrender1 \
     && apt-get clean
 RUN echo "en_US.UTF-8 UTF-8" > /etc/locale.gen && \
     locale-gen
