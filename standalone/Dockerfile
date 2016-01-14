@@ -17,6 +17,7 @@ RUN apt-get update && apt-get install -yq --no-install-recommends \
     unzip \
     sudo \
     locales \
+    libglib2.0-0 \
     && apt-get clean
 RUN echo "en_US.UTF-8 UTF-8" > /etc/locale.gen && \
     locale-gen
@@ -63,7 +64,7 @@ RUN conda install --yes \
     terminado \
     'ipywidgets=4.0*' \
     'pandas=0.17*' \
-    'matplotlib=1.4*' \
+    'matplotlib=1.5*' \
     'scipy=0.16*' \
     'seaborn=0.6*' \
     'scikit-learn=0.16*' \
