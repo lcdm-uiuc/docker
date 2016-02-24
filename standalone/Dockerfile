@@ -21,6 +21,7 @@ RUN apt-get update && apt-get install -yq --no-install-recommends \
     libxrender1 \
     libglib2.0-0 \
     libxext6 \
+    libopenblas-base \
     && apt-get clean
 RUN echo "en_US.UTF-8 UTF-8" > /etc/locale.gen && \
     locale-gen
@@ -82,6 +83,7 @@ RUN conda install --yes \
     'bokeh=0.10*' \
     beautiful-soup \
     pytables \
+    graphviz \
     && conda clean -yt
 
 # Configure container startup as root
