@@ -27,8 +27,8 @@ RUN echo "en_US.UTF-8 UTF-8" > /etc/locale.gen && \
     locale-gen
 
 # Install Tini
-RUN wget --quiet https://github.com/krallin/tini/releases/download/v0.6.0/tini && \
-    echo "d5ed732199c36a1189320e6c4859f0169e950692f451c03e7854243b95f4234b *tini" | sha256sum -c - && \
+RUN wget --quiet https://github.com/krallin/tini/releases/download/v0.9.0/tini && \
+    echo "faafbfb5b079303691a939a747d7f60591f2143164093727e870b289a44d9872 *tini" | sha256sum -c - && \
     mv tini /usr/local/bin/tini && \
     chmod +x /usr/local/bin/tini
 
@@ -56,35 +56,50 @@ RUN mkdir /home/$NB_USER/.jupyter && \
 # Install conda as data_scientist
 RUN cd /tmp && \
     mkdir -p $CONDA_DIR && \
-    wget --quiet https://repo.continuum.io/miniconda/Miniconda3-3.9.1-Linux-x86_64.sh && \
-    echo "6c6b44acdd0bc4229377ee10d52c8ac6160c336d9cdd669db7371aa9344e1ac3 *Miniconda3-3.9.1-Linux-x86_64.sh" | sha256sum -c - && \
-    /bin/bash Miniconda3-3.9.1-Linux-x86_64.sh -f -b -p $CONDA_DIR && \
-    rm Miniconda3-3.9.1-Linux-x86_64.sh && \
-    $CONDA_DIR/bin/conda install --yes conda==3.14.1
+    wget --quiet https://repo.continuum.io/miniconda/Miniconda3-3.19.0-Linux-x86_64.sh && \
+    echo "9ea57c0fdf481acf89d816184f969b04bc44dea27b258c4e86b1e3a25ff26aa0 *Miniconda3-3.19.0-Linux-x86_64.sh" | sha256sum -c - && \
+    /bin/bash Miniconda3-3.19.0-Linux-x86_64.sh -f -b -p $CONDA_DIR && \
+    rm Miniconda3-3.19.0-Linux-x86_64.sh && \
+    $CONDA_DIR/bin/conda install --yes conda==3.19.1
 
 # Install Python 3 packages as data_scientist
 RUN conda install --yes \
-    'notebook=4.0*' \
+    'notebook=4.1*' \
     terminado \
-    'ipywidgets=4.0*' \
+    'nose=1.3*' \
+    'ipywidgets=4.1*' \
     'pandas=0.17*' \
     'matplotlib=1.5*' \
-    'scipy=0.16*' \
-    'seaborn=0.6*' \
-    'scikit-learn=0.16*' \
+    'scipy=0.17*' \
+    'seaborn=0.7*' \
+    'scikit-learn=0.17*' \
     'scikit-image=0.11*' \
     'sympy=0.7*' \
-    'cython=0.22*' \
+    'cython=0.23*' \
     'patsy=0.4*' \
     'statsmodels=0.6*' \
     'cloudpickle=0.1*' \
     'dill=0.2*' \
-    'numba=0.22*' \
-    'bokeh=0.10*' \
-    beautiful-soup \
-    pytables \
-    graphviz \
+    'numba=0.23*' \
+    'bokeh=0.11*' \
+    'h5py=2.5*' \
+    'basemap=1.0*' \
+    'beautifulsoup4=4.4*' \
+    'pytables=3.2*' \
+    'graphviz=2.38*' \
+    'gensim=0.12*' \
+    'lxml=3.5' \
+    'networkx=1.11*' \
+    'nltk=3.1*' \
+    'pymongo=3.0*' \
+    'snowballstemmer=1.2*' \
+    'sqlalchemy=1.0*' \
+    'sqlite=3.9*' \
+    'joblib=0.8*' \
     && conda clean -yt
+
+RUN pip install --no-deps git+git://github.com/Theano/Theano.git && \
+    pip install --no-deps git+git://github.com/pymc-devs/pymc3.git
 
 # Configure container startup as root
 USER root
