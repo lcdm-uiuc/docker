@@ -100,7 +100,7 @@ RUN conda install --yes \
 
 RUN pip install --no-deps git+git://github.com/Theano/Theano.git && \
     pip install --no-deps git+git://github.com/pymc-devs/pymc3.git && \
-    pip install tweepy
+    pip install tweepy wordcloud
 
 # Configure container startup as root
 USER root
