@@ -1,0 +1,11 @@
+<configuration>
+    <property>
+        <name>mapreduce.framework.name</name>
+        <value>yarn</value>
+    </property>
+    <property>
+        <name>mapreduce.jobhistory.address</name>
+        <value>HOSTNAME:10020</value>
+        <description>Host and port for Job History Server (default 0.0.0.0:10020)</description>
+    </property>
+</configuration>

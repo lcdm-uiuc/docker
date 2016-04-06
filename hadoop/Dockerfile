@@ -63,6 +63,12 @@ RUN cd /usr/local && ln -s ./hadoop-2.6.0 hadoop
 ENV HADOOP_PREFIX /usr/local/hadoop
 RUN chown -R $NB_USER:hadoop /usr/local/hadoop-2.6.0
 
+# pig
+RUN curl -s http://www-us.apache.org/dist/pig/pig-0.15.0/pig-0.15.0.tar.gz | tar -xz -C /usr/local/ && \
+    chown -R $NB_USER:hadoop /usr/local/pig-0.15.0
+
+ENV PATH $PATH:/usr/local/pig-0.15.0/bin
+
 # passwordless ssh
 RUN rm -f /etc/ssh/ssh_host_dsa_key /etc/ssh/ssh_host_rsa_key && \
     chown -R $NB_USER:hadoop /etc/ssh && \
@@ -109,7 +115,8 @@ ADD core-site.xml.template $HADOOP_PREFIX/etc/hadoop/core-site.xml.template
 RUN sed s/HOSTNAME/localhost/ /usr/local/hadoop/etc/hadoop/core-site.xml.template > /usr/local/hadoop/etc/hadoop/core-site.xml
 ADD hdfs-site.xml $HADOOP_PREFIX/etc/hadoop/hdfs-site.xml
 
-ADD mapred-site.xml $HADOOP_PREFIX/etc/hadoop/mapred-site.xml
+ADD mapred-site.xml.template $HADOOP_PREFIX/etc/hadoop/mapred-site.xml.template
+RUN sed s/HOSTNAME/localhost/ /usr/local/hadoop/etc/hadoop/mapred-site.xml.template > /usr/local/hadoop/etc/hadoop/mapred-site.xml
 ADD yarn-site.xml $HADOOP_PREFIX/etc/hadoop/yarn-site.xml
 
 RUN $HADOOP_PREFIX/bin/hdfs namenode -format
