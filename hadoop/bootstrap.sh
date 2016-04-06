@@ -4,21 +4,22 @@
 
 $HADOOP_PREFIX/etc/hadoop/hadoop-env.sh
 
-#rm /tmp/*.pid
+rm /tmp/*.pid
 
 # installing libraries if any - (resource urls added comma separated to the ACP system variable)
 cd $HADOOP_PREFIX/share/hadoop/common ; for cp in ${ACP//,/ }; do  echo == $cp; curl -LO $cp ; done; cd -
 
 # altering the core-site configuration
 sed s/HOSTNAME/$HOSTNAME/ /usr/local/hadoop/etc/hadoop/core-site.xml.template > /usr/local/hadoop/etc/hadoop/core-site.xml
-
+sed s/HOSTNAME/$HOSTNAME/ /usr/local/hadoop/etc/hadoop/mapred-site.xml.template > /usr/local/hadoop/etc/hadoop/mapred-site.xml
 
 service ssh start
-# commenting out start-dfs.sh for now
-# because we have to start the nodes manually anyway
-# and start-dfs.sh is very slow
-#$HADOOP_PREFIX/sbin/start-dfs.sh
+
+$HADOOP_PREFIX/sbin/start-dfs.sh
 $HADOOP_PREFIX/sbin/start-yarn.sh
+
+# Pig relies on job history server
+$HADOOP_PREFIX/sbin/mr-jobhistory-daemon.sh start historyserver
 
 # Handle special flags if we're root
 if [ $UID == 0 ] ; then
