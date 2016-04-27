@@ -22,6 +22,7 @@ RUN apt-get update && apt-get install -yq --no-install-recommends \
     libglib2.0-0 \
     libxext6 \
     libopenblas-base \
+    libltdl7 \
     && apt-get clean
 RUN echo "en_US.UTF-8 UTF-8" > /etc/locale.gen && \
     locale-gen
@@ -100,7 +101,7 @@ RUN conda install --yes \
 
 RUN pip install --no-deps git+git://github.com/Theano/Theano.git && \
     pip install --no-deps git+git://github.com/pymc-devs/pymc3.git && \
-    pip install tweepy wordcloud
+    pip install tweepy wordcloud cassandra-driver py2neo==3b1 keras pydot-ng
 
 # Configure container startup as root
 USER root
