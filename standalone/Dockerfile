@@ -45,14 +45,15 @@ ENV LANGUAGE en_US.UTF-8
 
 # Create data_scientist user with UID=1000 and in the 'users' group
 RUN useradd -m -s /bin/bash -N -u $NB_UID $NB_USER && \
-    mkdir -p /opt/conda && \
-    chown data_scientist /opt/conda
+    mkdir -p $CONDA_DIR && \
+    chown $NB_USER $CONDA_DIR
 
-USER data_scientist
+USER $NB_USER
 
 # Setup data_scientist home directory
 RUN mkdir /home/$NB_USER/.jupyter && \
-    mkdir /home/$NB_USER/.local
+    mkdir -p -m 700 /home/$NB_USER/.local/share/jupyter && \
+    echo "cacert=/etc/ssl/certs/ca-certificates.crt" > /home/$NB_USER/.curlrc
 
 # Install conda as data_scientist
 RUN cd /tmp && \
@@ -61,21 +62,23 @@ RUN cd /tmp && \
     echo "9ea57c0fdf481acf89d816184f969b04bc44dea27b258c4e86b1e3a25ff26aa0 *Miniconda3-3.19.0-Linux-x86_64.sh" | sha256sum -c - && \
     /bin/bash Miniconda3-3.19.0-Linux-x86_64.sh -f -b -p $CONDA_DIR && \
     rm Miniconda3-3.19.0-Linux-x86_64.sh && \
-    $CONDA_DIR/bin/conda install --yes conda==3.19.1
+    $CONDA_DIR/bin/conda install --quiet --yes conda==3.19.1 && \
+    $CONDA_DIR/bin/conda config --system --add channels conda-forge && \
+    conda clean -tipsy
 
 # Install Python 3 packages as data_scientist
 RUN conda install --yes \
-    'notebook=4.1*' \
+    'notebook=4.2*' \
     terminado \
     'nose=1.3*' \
-    'ipywidgets=4.1*' \
-    'pandas=0.17*' \
+    'ipywidgets=5.1*' \
+    'pandas=0.18*' \
     'matplotlib=1.5*' \
     'scipy=0.17*' \
     'seaborn=0.7*' \
     'scikit-learn=0.17*' \
     'scikit-image=0.11*' \
-    'sympy=0.7*' \
+    'sympy=1.0*' \
     'cython=0.23*' \
     'patsy=0.4*' \
     'statsmodels=0.6*' \
@@ -89,15 +92,26 @@ RUN conda install --yes \
     'pytables=3.2*' \
     'graphviz=2.38*' \
     'gensim=0.12*' \
-    'lxml=3.5' \
+    'lxml=3.6' \
     'networkx=1.11*' \
-    'nltk=3.1*' \
+    'nltk=3.2*' \
     'pymongo=3.0*' \
     'snowballstemmer=1.2*' \
     'sqlalchemy=1.0*' \
-    'sqlite=3.9*' \
-    'joblib=0.8*' \
+    'sqlite=3.13*' \
+    'joblib=0.9*' \
+    && conda remove --quiet --yes --force qt pyqt \
     && conda clean -yt
+
+# Install JupyterHub to get the jupyterhub-singleuser startup script
+RUN pip --no-cache-dir install 'jupyterhub==0.5'
+
+# Activate ipywidgets extension in the environment that runs the notebook server
+RUN jupyter nbextension enable --py widgetsnbextension --sys-prefix
+
+# Configure ipython kernel to use matplotlib inline backend by default
+RUN mkdir -p $HOME/.ipython/profile_default/startup
+COPY mplimporthook.py $HOME/.ipython/profile_default/startup/
 
 RUN pip install --no-deps git+git://github.com/Theano/Theano.git && \
     pip install --no-deps git+git://github.com/pymc-devs/pymc3.git && \
@@ -112,7 +126,8 @@ CMD ["start-notebook.sh"]
 
 # Add local files as late as possible to avoid cache busting
 COPY start-notebook.sh /usr/local/bin/
+COPY start-singleuser.sh /usr/local/bin/
 COPY jupyter_notebook_config.py /home/$NB_USER/.jupyter/
 RUN chown -R $NB_USER:users /home/$NB_USER/.jupyter
 
-USER data_scientist
+USER $NB_USER
