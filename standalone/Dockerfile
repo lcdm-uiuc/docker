@@ -119,6 +119,10 @@ RUN pip install --no-deps git+git://github.com/Theano/Theano.git && \
 
 # Configure container startup as root
 USER root
+
+RUN pip install git+git://github.com/EdwardJKim/nbgrader.git && \
+    nbgrader extension install
+
 EXPOSE 8888
 WORKDIR /home/$NB_USER
 ENTRYPOINT ["tini", "--"]
