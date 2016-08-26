@@ -23,6 +23,10 @@ RUN apt-get update && apt-get install -yq --no-install-recommends \
     libxext6 \
     libopenblas-base \
     libltdl7 \
+    less \
+    file \
+    man-db \
+    bsdmainutils \
     && apt-get clean
 RUN echo "en_US.UTF-8 UTF-8" > /etc/locale.gen && \
     locale-gen
