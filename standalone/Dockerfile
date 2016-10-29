@@ -105,6 +105,7 @@ RUN conda install --yes \
     'sqlalchemy=1.0*' \
     'sqlite=3.13*' \
     'joblib=0.9*' \
+    'tensorflow=0.10*' \ 
     && conda remove --quiet --yes --force qt pyqt \
     && conda clean -yt
 
