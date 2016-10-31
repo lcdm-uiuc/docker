@@ -1,16 +1,12 @@
-# Creates pseudo distributed hadoop 2.6.0 on Ubuntu 14.04
-#
-# docker build -t lcdm/hadoop-info490 .
-
 FROM sequenceiq/pam:ubuntu-14.04
+
 MAINTAINER Edward J Kim <edward.junhyung.kim@gmail.com>
 
 USER root
 
 # Install all OS dependencies for fully functional notebook server
 ENV DEBIAN_FRONTEND noninteractive
-RUN apt-get update && \
-    apt-get install -yq --no-install-recommends \
+RUN apt-get update && apt-get install -yq --no-install-recommends \
     git \
     vim \
     wget \
@@ -26,8 +22,13 @@ RUN apt-get update && \
     libglib2.0-0 \
     libxext6 \
     libopenblas-base \
+    libltdl7 \
+    less \
+    file \
+    man-db \
+    bsdmainutils \
+    traceroute \
     curl \
-    tar \
     sudo \
     openssh-server \
     openssh-client \
@@ -35,18 +36,6 @@ RUN apt-get update && \
     && apt-get clean
 RUN locale-gen en_US.UTF-8 && \
     dpkg-reconfigure locales
-
-# Configure environment
-ENV SHELL /bin/bash
-ENV NB_USER data_scientist
-ENV NB_UID 1000
-ENV LC_ALL en_US.UTF-8
-ENV LANG en_US.UTF-8
-ENV LANGUAGE en_US.UTF-8
-
-# Create data_scientist user with UID=1000 and in the 'hadoop' group
-RUN addgroup hadoop && \
-    useradd -m -s /bin/bash -N -u $NB_UID -G hadoop $NB_USER
 
 # Install Tini
 RUN wget --quiet https://github.com/krallin/tini/releases/download/v0.9.0/tini && \
@@ -57,41 +46,95 @@ RUN wget --quiet https://github.com/krallin/tini/releases/download/v0.9.0/tini &
 # Configure environment
 ENV CONDA_DIR /opt/conda
 ENV PATH $CONDA_DIR/bin:$PATH
+ENV SHELL /bin/bash
+ENV NB_USER data_scientist
+ENV NB_UID 1000
+ENV LC_ALL en_US.UTF-8
+ENV LANG en_US.UTF-8
+ENV LANGUAGE en_US.UTF-8
 
-RUN mkdir -p /opt/conda && \
-    chown $NB_USER:hadoop /opt/conda
+# Create data_scientist user with UID=1000 and in the 'users' group
+RUN addgroup hadoop && \
+    useradd -m -s /bin/bash -N -u $NB_UID -G users,hadoop $NB_USER && \
+    mkdir -p $CONDA_DIR && \
+    chown $NB_USER $CONDA_DIR
 
 USER $NB_USER
 
 # Setup data_scientist home directory
 RUN mkdir /home/$NB_USER/.jupyter && \
-    mkdir /home/$NB_USER/.local
+    mkdir /home/$NB_USER/.local && \
+    mkdir -p -m 700 /home/$NB_USER/.local/share/jupyter && \
+    echo "cacert=/etc/ssl/certs/ca-certificates.crt" > /home/$NB_USER/.curlrc
 
 # Install conda as data_scientist
 RUN cd /tmp && \
     mkdir -p $CONDA_DIR && \
-    wget --quiet --no-check-certificate https://repo.continuum.io/miniconda/Miniconda3-3.19.0-Linux-x86_64.sh && \
+    wget --quiet https://repo.continuum.io/miniconda/Miniconda3-3.19.0-Linux-x86_64.sh && \
     echo "9ea57c0fdf481acf89d816184f969b04bc44dea27b258c4e86b1e3a25ff26aa0 *Miniconda3-3.19.0-Linux-x86_64.sh" | sha256sum -c - && \
     /bin/bash Miniconda3-3.19.0-Linux-x86_64.sh -f -b -p $CONDA_DIR && \
     rm Miniconda3-3.19.0-Linux-x86_64.sh && \
     $CONDA_DIR/bin/conda install --quiet --yes conda==3.19.1 && \
+    $CONDA_DIR/bin/conda config --system --add channels conda-forge && \
     conda clean -tipsy
 
 # Install Python 3 packages as data_scientist
 RUN conda install --yes \
-    'conda=3.19.1' \
-    'notebook=4.1*' \
-    terminado  \
+    'notebook=4.2*' \
+    terminado \
     'nose=1.3*' \
-    'ipywidgets=4.1*' \
-#    'pandas=0.17*' \
-#    'matplotlib=1.5*' \
-#    'scipy=0.17*' \
-#    'seaborn=0.7*' \
-#    'scikit-learn=0.17*' \
-    && conda clean -tipsy
+    'ipywidgets=5.1*' \
+    'pandas=0.18*' \
+    'matplotlib=1.5*' \
+    'scipy=0.17*' \
+    'seaborn=0.7*' \
+    'scikit-learn=0.17*' \
+    'scikit-image=0.11*' \
+    'sympy=1.0*' \
+    'cython=0.23*' \
+    'patsy=0.4*' \
+    'statsmodels=0.6*' \
+    'cloudpickle=0.1*' \
+    'dill=0.2*' \
+    'numba=0.23*' \
+    'bokeh=0.11*' \
+    'h5py=2.5*' \
+    'basemap=1.0*' \
+    'beautifulsoup4=4.4*' \
+    'pytables=3.2*' \
+    'graphviz=2.38*' \
+    'gensim=0.12*' \
+    'lxml=3.6' \
+    'networkx=1.11*' \
+    'nltk=3.2*' \
+    'pymongo=3.0*' \
+    'snowballstemmer=1.2*' \
+    'sqlalchemy=1.0*' \
+    'sqlite=3.13*' \
+    'joblib=0.9*' \
+    'tensorflow=0.10*' \ 
+    && conda remove --quiet --yes --force qt pyqt \
+    && conda clean -yt
 
+# Install JupyterHub to get the jupyterhub-singleuser startup script
+RUN pip --no-cache-dir install 'jupyterhub==0.5'
+
+# Activate ipywidgets extension in the environment that runs the notebook server
+RUN jupyter nbextension enable --py widgetsnbextension --sys-prefix
+
+# Configure ipython kernel to use matplotlib inline backend by default
+RUN mkdir -p $HOME/.ipython/profile_default/startup
+COPY mplimporthook.py $HOME/.ipython/profile_default/startup/
+
+RUN pip install --no-deps git+git://github.com/Theano/Theano.git && \
+    pip install --no-deps git+git://github.com/pymc-devs/pymc3.git && \
+    pip install tweepy wordcloud cassandra-driver py2neo==3b1 keras pydot-ng
+
+# Configure container startup as root
 USER root
+
+RUN pip install git+git://github.com/EdwardJKim/nbgrader.git && \
+    nbgrader extension install
 
 RUN mkdir -p /usr/java/default && \
     curl -Ls 'http://download.oracle.com/otn-pub/java/jdk/8u77-b03/jdk-8u77-linux-x64.tar.gz' -H 'Cookie: oraclelicense=accept-securebackup-cookie' | \
@@ -201,19 +244,42 @@ RUN service ssh start && \
 #    $HADOOP_PREFIX/sbin/start-dfs.sh && \
 #    $HADOOP_PREFIX/bin/hdfs dfs -put $HADOOP_PREFIX/etc/hadoop/ input
 
-
-# Configure container startup as root
+# Spark dependencies
 USER root
-# open ports for hadoop
-EXPOSE 50020 50090 50070 50010 50075 8031 8032 8033 8040 8042 49707 22 8088 8030
-# open ports for jupyterhub
+ENV APACHE_SPARK_VERSION 2.0.1
+RUN apt-get -y update && \
+    apt-get install -y --no-install-recommends openjdk-7-jre-headless && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
+RUN cd /tmp && \
+    wget -q http://d3kbcqa49mib13.cloudfront.net/spark-${APACHE_SPARK_VERSION}-bin-hadoop2.7.tgz && \
+    tar xzf spark-${APACHE_SPARK_VERSION}-bin-hadoop2.7.tgz -C /usr/local && \
+    rm spark-${APACHE_SPARK_VERSION}-bin-hadoop2.7.tgz
+RUN cd /usr/local && ln -s spark-${APACHE_SPARK_VERSION}-bin-hadoop2.7 spark
+
+# Mesos dependencies
+RUN apt-key adv --keyserver keyserver.ubuntu.com --recv E56151BF && \
+    DISTRO=ubuntu && \
+    CODENAME=trusty && \
+    echo "deb http://repos.mesosphere.com/${DISTRO} ${CODENAME} main" > /etc/apt/sources.list.d/mesosphere.list && \
+    apt-get -y update && \
+    apt-get --no-install-recommends -y --force-yes install mesos && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
+
+# Spark and Mesos pointers
+ENV SPARK_HOME /usr/local/spark
+ENV PYTHONPATH $SPARK_HOME/python:$SPARK_HOME/python/lib/py4j-0.10.3-src.zip
+ENV MESOS_NATIVE_LIBRARY /usr/local/lib/libmesos.so
+
 EXPOSE 8888
 WORKDIR /home/$NB_USER
 ENTRYPOINT ["tini", "--"]
 CMD ["/etc/bootstrap.sh"]
 
 # Add local files as late as possible to avoid cache busting
+COPY start-singleuser.sh /usr/local/bin/
 COPY jupyter_notebook_config.py /home/$NB_USER/.jupyter/
-RUN chown -R $NB_USER:hadoop /home/$NB_USER/.jupyter
+RUN chown -R $NB_USER:users /home/$NB_USER/.jupyter
 
 USER $NB_USER
