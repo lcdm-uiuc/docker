@@ -21,6 +21,13 @@ sed s/HOSTNAME/$HOSTNAME/ /usr/local/hadoop/etc/hadoop/core-site.xml.template > 
 sed s/HOSTNAME/$HOSTNAME/ /usr/local/hadoop/etc/hadoop/mapred-site.xml.template > /usr/local/hadoop/etc/hadoop/mapred-site.xml
 sed s/HOSTNAME/$HOSTNAME/ /usr/local/hadoop/etc/hadoop/yarn-site.xml.template > /usr/local/hadoop/etc/hadoop/yarn-site.xml
 
+# need this workaround to regenerate ssh keys because we will mount home directory and overwrite ~/.ssh
+rm -rf /home/$NB_USER/.ssh
+mkdir /home/$NB_USER/.ssh
+echo -e "Host *\nUserKnownHostsFile /dev/null\nStrictHostKeyChecking no\nLogLevel quiet\nPort 2122" > /home/$NB_USER/.ssh/config
+ssh-keygen -q -N '' -t rsa -f /home/$NB_USER/.ssh/id_rsa
+cat /home/$NB_USER/.ssh/id_rsa.pub >> /home/$NB_USER/.ssh/authorized_keys
+
 service ssh start
 
 #$HADOOP_PREFIX/sbin/start-dfs.sh
