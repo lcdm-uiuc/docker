@@ -126,9 +126,15 @@ RUN jupyter nbextension enable --py widgetsnbextension --sys-prefix
 RUN mkdir -p $HOME/.ipython/profile_default/startup
 COPY mplimporthook.py $HOME/.ipython/profile_default/startup/
 
-RUN pip install --no-deps git+git://github.com/Theano/Theano.git && \
+RUN pip install --upgrade pip && \
+    pip install --no-deps git+git://github.com/Theano/Theano.git && \
     pip install --no-deps git+git://github.com/pymc-devs/pymc3.git && \
-    pip install tweepy wordcloud cassandra-driver py2neo==3b1 keras pydot-ng
+    # cassandra-driver 3.7  has a bug, so downgrade to 3.6
+    # https://datastax-oss.atlassian.net/browse/PYTHON-649
+    pip install tweepy wordcloud cassandra-driver==3.6 py2neo==3b1 keras pydot-ng &&\
+    # PyMC3 depends on tqdm (for now) but remove in future versions
+    # https://github.com/pymc-devs/pymc3/pull/1408
+    pip install tqdm
 
 # Configure container startup as root
 USER root
