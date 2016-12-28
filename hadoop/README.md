@@ -2,6 +2,18 @@
 
 ## Basic Use
 
+Build with
+
+```
+docker build -t lcdm/info490-hadoop .
+```
+
+or simply pull the image with
+
+```
+docker pull lcdm/info490-hadoop
+```
+
 The following command starts a container with the Notebook server listening for HTTP connections on port 8888 without authentication configured.
 
 ```

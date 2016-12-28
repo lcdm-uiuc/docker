@@ -4,6 +4,18 @@ Modified from [jupyter/scipy-notebook](https://github.com/jupyter/docker-stacks)
 
 ## Basic Use
 
+Build with
+
+```
+docker build -t lcdm/info490 .
+```
+
+or simply pull the image with
+
+```
+docker pull lcdm/info490
+```
+
 The following command starts a container with the Notebook server listening for HTTP connections on port 8888 without authentication configured.
 
 ```
