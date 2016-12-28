@@ -1,4 +1,4 @@
-FROM debian:jessie
+FROM ubuntu:14.04
 
 MAINTAINER Edward J Kim <edward.junhyung.kim@gmail.com>
 
@@ -29,12 +29,12 @@ RUN apt-get update && apt-get install -yq --no-install-recommends \
     bsdmainutils \
     traceroute \
     && apt-get clean
-RUN echo "en_US.UTF-8 UTF-8" > /etc/locale.gen && \
-    locale-gen
+RUN locale-gen en_US.UTF-8 && \
+    dpkg-reconfigure locales
 
 # Install Tini
-RUN wget --quiet https://github.com/krallin/tini/releases/download/v0.9.0/tini && \
-    echo "faafbfb5b079303691a939a747d7f60591f2143164093727e870b289a44d9872 *tini" | sha256sum -c - && \
+RUN wget --quiet https://github.com/krallin/tini/releases/download/v0.10.0/tini && \
+    echo "1361527f39190a7338a0b434bd8c88ff7233ce7b9a4876f3315c22fce7eca1b0 *tini" | sha256sum -c - && \
     mv tini /usr/local/bin/tini && \
     chmod +x /usr/local/bin/tini
 
@@ -57,27 +57,30 @@ USER $NB_USER
 
 # Setup data_scientist home directory
 RUN mkdir /home/$NB_USER/.jupyter && \
+    mkdir /home/$NB_USER/.local && \
     mkdir -p -m 700 /home/$NB_USER/.local/share/jupyter && \
     echo "cacert=/etc/ssl/certs/ca-certificates.crt" > /home/$NB_USER/.curlrc
 
 # Install conda as data_scientist
 RUN cd /tmp && \
     mkdir -p $CONDA_DIR && \
-    wget --quiet https://repo.continuum.io/miniconda/Miniconda3-3.19.0-Linux-x86_64.sh && \
-    echo "9ea57c0fdf481acf89d816184f969b04bc44dea27b258c4e86b1e3a25ff26aa0 *Miniconda3-3.19.0-Linux-x86_64.sh" | sha256sum -c - && \
-    /bin/bash Miniconda3-3.19.0-Linux-x86_64.sh -f -b -p $CONDA_DIR && \
-    rm Miniconda3-3.19.0-Linux-x86_64.sh && \
-    $CONDA_DIR/bin/conda install --quiet --yes conda==3.19.1 && \
+    wget --quiet https://repo.continuum.io/miniconda/Miniconda3-4.1.11-Linux-x86_64.sh && \
+    echo "efd6a9362fc6b4085f599a881d20e57de628da8c1a898c08ec82874f3bad41bf *Miniconda3-4.1.11-Linux-x86_64.sh" | sha256sum -c - && \
+    /bin/bash Miniconda3-4.1.11-Linux-x86_64.sh -f -b -p $CONDA_DIR && \
+    rm Miniconda3-4.1.11-Linux-x86_64.sh && \
+    $CONDA_DIR/bin/conda install --quiet --yes conda==4.1.11 && \
     $CONDA_DIR/bin/conda config --system --add channels conda-forge && \
+    $CONDA_DIR/bin/conda config --system --set auto_update_conda false && \
     conda clean -tipsy
 
 # Install Python 3 packages as data_scientist
 RUN conda install --yes \
     'notebook=4.2*' \
+    jupyterhub=0.7 \
     terminado \
     'nose=1.3*' \
-    'ipywidgets=5.1*' \
-    'pandas=0.18*' \
+    'ipywidgets=5.2*' \
+    'pandas=0.19*' \
     'matplotlib=1.5*' \
     'scipy=0.17*' \
     'seaborn=0.7*' \
@@ -91,16 +94,16 @@ RUN conda install --yes \
     'dill=0.2*' \
     'numba=0.23*' \
     'bokeh=0.11*' \
-    'h5py=2.5*' \
+    'h5py=2.6*' \
     'basemap=1.0*' \
-    'beautifulsoup4=4.4*' \
+    'beautifulsoup4=4.5*' \
     'pytables=3.2*' \
     'graphviz=2.38*' \
     'gensim=0.12*' \
     'lxml=3.6' \
     'networkx=1.11*' \
     'nltk=3.2*' \
-    'pymongo=3.0*' \
+    'pymongo=3.3*' \
     'snowballstemmer=1.2*' \
     'sqlalchemy=1.0*' \
     'sqlite=3.13*' \
@@ -109,9 +112,6 @@ RUN conda install --yes \
     && conda remove --quiet --yes --force qt pyqt \
     && conda clean -yt
 
-# Install JupyterHub to get the jupyterhub-singleuser startup script
-RUN pip --no-cache-dir install 'jupyterhub==0.5'
-
 # Activate ipywidgets extension in the environment that runs the notebook server
 RUN jupyter nbextension enable --py widgetsnbextension --sys-prefix
 
@@ -119,9 +119,15 @@ RUN jupyter nbextension enable --py widgetsnbextension --sys-prefix
 RUN mkdir -p $HOME/.ipython/profile_default/startup
 COPY mplimporthook.py $HOME/.ipython/profile_default/startup/
 
-RUN pip install --no-deps git+git://github.com/Theano/Theano.git && \
+RUN pip install --upgrade pip && \
+    pip install --no-deps git+git://github.com/Theano/Theano.git && \
     pip install --no-deps git+git://github.com/pymc-devs/pymc3.git && \
-    pip install tweepy wordcloud cassandra-driver py2neo==3b1 keras pydot-ng
+    # cassandra-driver 3.7  has a bug, so downgrade to 3.6
+    # https://datastax-oss.atlassian.net/browse/PYTHON-649
+    pip install tweepy wordcloud cassandra-driver==3.6 py2neo==3b1 keras pydot-ng && \
+    # PyMC3 depends on tqdm (for now) but remove in future versions
+    # https://github.com/pymc-devs/pymc3/pull/1408
+    pip install tqdm
 
 # Configure container startup as root
 USER root
@@ -130,35 +136,31 @@ RUN pip install git+git://github.com/EdwardJKim/nbgrader.git && \
     nbgrader extension install
 
 # Spark dependencies
-ENV APACHE_SPARK_VERSION 1.6.1
+USER root
+ENV APACHE_SPARK_VERSION 2.0.1
 RUN apt-get -y update && \
     apt-get install -y --no-install-recommends openjdk-7-jre-headless && \
     apt-get clean && \
-    rm -rf /var/lib/apt/lists/*
-RUN cd /tmp && \
-        wget -q http://d3kbcqa49mib13.cloudfront.net/spark-${APACHE_SPARK_VERSION}-bin-hadoop2.6.tgz && \
-        echo "09f3b50676abc9b3d1895773d18976953ee76945afa72fa57e6473ce4e215970 *spark-${APACHE_SPARK_VERSION}-bin-hadoop2.6.tgz" | sha256sum -c - && \
-        tar xzf spark-${APACHE_SPARK_VERSION}-bin-hadoop2.6.tgz -C /usr/local && \
-        rm spark-${APACHE_SPARK_VERSION}-bin-hadoop2.6.tgz
-RUN cd /usr/local && ln -s spark-${APACHE_SPARK_VERSION}-bin-hadoop2.6 spark
+    rm -rf /var/lib/apt/lists/* && \
+    cd /tmp && \
+    wget -q http://d3kbcqa49mib13.cloudfront.net/spark-${APACHE_SPARK_VERSION}-bin-hadoop2.7.tgz && \
+    tar xzf spark-${APACHE_SPARK_VERSION}-bin-hadoop2.7.tgz -C /usr/local && \
+    rm spark-${APACHE_SPARK_VERSION}-bin-hadoop2.7.tgz
+RUN cd /usr/local && ln -s spark-${APACHE_SPARK_VERSION}-bin-hadoop2.7 spark
 
 # Mesos dependencies
-# Currently, Mesos is not available from Debian Jessie.
-# So, we are installing it from Debian Wheezy. Once it
-# becomes available for Debian Jessie. We should switch
-# over to using that instead.
 RUN apt-key adv --keyserver keyserver.ubuntu.com --recv E56151BF && \
-    DISTRO=debian && \
-    CODENAME=wheezy && \
-    echo "deb http://repos.mesosphere.io/${DISTRO} ${CODENAME} main" > /etc/apt/sources.list.d/mesosphere.list && \
+    DISTRO=ubuntu && \
+    CODENAME=trusty && \
+    echo "deb http://repos.mesosphere.com/${DISTRO} ${CODENAME} main" > /etc/apt/sources.list.d/mesosphere.list && \
     apt-get -y update && \
-    apt-get --no-install-recommends -y --force-yes install mesos=0.22.1-1.0.debian78 && \
+    apt-get --no-install-recommends -y --force-yes install mesos && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
 # Spark and Mesos pointers
 ENV SPARK_HOME /usr/local/spark
-ENV PYTHONPATH $SPARK_HOME/python:$SPARK_HOME/python/lib/py4j-0.9-src.zip
+ENV PYTHONPATH $SPARK_HOME/python:$SPARK_HOME/python/lib/py4j-0.10.3-src.zip
 ENV MESOS_NATIVE_LIBRARY /usr/local/lib/libmesos.so
 
 EXPOSE 8888
