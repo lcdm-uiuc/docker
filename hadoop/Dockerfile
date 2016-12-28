@@ -38,8 +38,8 @@ RUN locale-gen en_US.UTF-8 && \
     dpkg-reconfigure locales
 
 # Install Tini
-RUN wget --quiet https://github.com/krallin/tini/releases/download/v0.9.0/tini && \
-    echo "faafbfb5b079303691a939a747d7f60591f2143164093727e870b289a44d9872 *tini" | sha256sum -c - && \
+RUN wget --quiet https://github.com/krallin/tini/releases/download/v0.10.0/tini && \
+    echo "1361527f39190a7338a0b434bd8c88ff7233ce7b9a4876f3315c22fce7eca1b0 *tini" | sha256sum -c - && \
     mv tini /usr/local/bin/tini && \
     chmod +x /usr/local/bin/tini
 
@@ -70,21 +70,23 @@ RUN mkdir /home/$NB_USER/.jupyter && \
 # Install conda as data_scientist
 RUN cd /tmp && \
     mkdir -p $CONDA_DIR && \
-    wget --quiet https://repo.continuum.io/miniconda/Miniconda3-3.19.0-Linux-x86_64.sh && \
-    echo "9ea57c0fdf481acf89d816184f969b04bc44dea27b258c4e86b1e3a25ff26aa0 *Miniconda3-3.19.0-Linux-x86_64.sh" | sha256sum -c - && \
-    /bin/bash Miniconda3-3.19.0-Linux-x86_64.sh -f -b -p $CONDA_DIR && \
-    rm Miniconda3-3.19.0-Linux-x86_64.sh && \
-    $CONDA_DIR/bin/conda install --quiet --yes conda==3.19.1 && \
+    wget --quiet https://repo.continuum.io/miniconda/Miniconda3-4.1.11-Linux-x86_64.sh && \
+    echo "efd6a9362fc6b4085f599a881d20e57de628da8c1a898c08ec82874f3bad41bf *Miniconda3-4.1.11-Linux-x86_64.sh" | sha256sum -c - && \
+    /bin/bash Miniconda3-4.1.11-Linux-x86_64.sh -f -b -p $CONDA_DIR && \
+    rm Miniconda3-4.1.11-Linux-x86_64.sh && \
+    $CONDA_DIR/bin/conda install --quiet --yes conda==4.1.11 && \
     $CONDA_DIR/bin/conda config --system --add channels conda-forge && \
+    $CONDA_DIR/bin/conda config --system --set auto_update_conda false && \
     conda clean -tipsy
 
 # Install Python 3 packages as data_scientist
 RUN conda install --yes \
     'notebook=4.2*' \
+    jupyterhub=0.7 \
     terminado \
     'nose=1.3*' \
-    'ipywidgets=5.1*' \
-    'pandas=0.18*' \
+    'ipywidgets=5.2*' \
+    'pandas=0.19*' \
     'matplotlib=1.5*' \
     'scipy=0.17*' \
     'seaborn=0.7*' \
@@ -98,16 +100,16 @@ RUN conda install --yes \
     'dill=0.2*' \
     'numba=0.23*' \
     'bokeh=0.11*' \
-    'h5py=2.5*' \
+    'h5py=2.6*' \
     'basemap=1.0*' \
-    'beautifulsoup4=4.4*' \
+    'beautifulsoup4=4.5*' \
     'pytables=3.2*' \
     'graphviz=2.38*' \
     'gensim=0.12*' \
     'lxml=3.6' \
     'networkx=1.11*' \
     'nltk=3.2*' \
-    'pymongo=3.0*' \
+    'pymongo=3.3*' \
     'snowballstemmer=1.2*' \
     'sqlalchemy=1.0*' \
     'sqlite=3.13*' \
@@ -117,7 +119,7 @@ RUN conda install --yes \
     && conda clean -yt
 
 # Install JupyterHub to get the jupyterhub-singleuser startup script
-RUN pip --no-cache-dir install 'jupyterhub==0.5'
+RUN pip --no-cache-dir install 'jupyterhub==0.7'
 
 # Activate ipywidgets extension in the environment that runs the notebook server
 RUN jupyter nbextension enable --py widgetsnbextension --sys-prefix
