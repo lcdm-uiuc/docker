@@ -64,61 +64,55 @@ RUN mkdir /home/$NB_USER/.jupyter && \
 # Install conda as data_scientist
 RUN cd /tmp && \
     mkdir -p $CONDA_DIR && \
-    wget --quiet https://repo.continuum.io/miniconda/Miniconda3-4.1.11-Linux-x86_64.sh && \
-    echo "efd6a9362fc6b4085f599a881d20e57de628da8c1a898c08ec82874f3bad41bf *Miniconda3-4.1.11-Linux-x86_64.sh" | sha256sum -c - && \
-    /bin/bash Miniconda3-4.1.11-Linux-x86_64.sh -f -b -p $CONDA_DIR && \
-    rm Miniconda3-4.1.11-Linux-x86_64.sh && \
-    $CONDA_DIR/bin/conda install --quiet --yes conda==4.1.11 && \
+    wget --quiet https://repo.continuum.io/miniconda/Miniconda3-4.2.12-Linux-x86_64.sh && \
+    echo "c59b3dd3cad550ac7596e0d599b91e75d88826db132e4146030ef471bb434e9a *Miniconda3-4.2.12-Linux-x86_64.sh" | sha256sum -c - && \
+    /bin/bash Miniconda3-4.2.12-Linux-x86_64.sh -f -b -p $CONDA_DIR && \
+    rm Miniconda3-4.2.12-Linux-x86_64.sh && \
     $CONDA_DIR/bin/conda config --system --add channels conda-forge && \
     $CONDA_DIR/bin/conda config --system --set auto_update_conda false && \
     conda clean -tipsy
 
 # Install Python 3 packages as data_scientist
-RUN conda install --yes \
-    'notebook=4.2*' \
-    jupyterhub=0.7 \
+RUN conda create -n py36 python=3.6 \
+    notebook \
+#    jupyterhub=0.7 \
     terminado \
-    'nose=1.3*' \
-    'ipywidgets=5.2*' \
-    'pandas=0.19*' \
-    'matplotlib=1.5*' \
-    'scipy=0.17*' \
-    'seaborn=0.7*' \
-    'scikit-learn=0.17*' \
-    'scikit-image=0.11*' \
-    'sympy=1.0*' \
-    'cython=0.23*' \
-    'patsy=0.4*' \
-    'statsmodels=0.6*' \
-    'cloudpickle=0.1*' \
-    'dill=0.2*' \
-    'numba=0.23*' \
-    'bokeh=0.11*' \
-    'h5py=2.6*' \
-    'basemap=1.0*' \
-    'beautifulsoup4=4.5*' \
-    'pytables=3.2*' \
-    'graphviz=2.38*' \
-    'gensim=0.12*' \
-    'lxml=3.6' \
-    'networkx=1.11*' \
-    'nltk=3.2*' \
-    'pymongo=3.3*' \
-    'snowballstemmer=1.2*' \
-    'sqlalchemy=1.0*' \
-    'sqlite=3.13*' \
-    'joblib=0.9*' \
-    'tensorflow=0.10*' \ 
-    && conda remove --quiet --yes --force qt pyqt \
+    nose \
+    ipywidgets \
+    pandas \
+    matplotlib \
+    scipy \
+    seaborn \
+    scikit-learn \
+    scikit-image \
+    sympy \
+    cython \
+    patsy \
+    statsmodels \
+    cloudpickle \
+    dill \
+    numba \
+    bokeh \
+    h5py \
+    basemap \
+    beautifulsoup4 \
+    pytables \
+    graphviz \
+    gensim \
+    lxml \
+    networkx \
+    nltk \
+    pymongo \
+    snowballstemmer \
+    sqlalchemy \
+    sqlite \
+    joblib \
+    jupyter \
     && conda clean -yt
 
-# Activate ipywidgets extension in the environment that runs the notebook server
-RUN jupyter nbextension enable --py widgetsnbextension --sys-prefix
-
-# Configure ipython kernel to use matplotlib inline backend by default
-RUN mkdir -p $HOME/.ipython/profile_default/startup
-COPY mplimporthook.py $HOME/.ipython/profile_default/startup/
-
+ENV PATH $CONDA_DIR/envs/py36/bin:$PATH
+RUN /bin/bash -c "source $CONDA_DIR/bin/activate py36"
+    
 RUN pip install --upgrade pip && \
     pip install --no-deps git+git://github.com/Theano/Theano.git && \
     pip install --no-deps git+git://github.com/pymc-devs/pymc3.git && \
@@ -127,41 +121,22 @@ RUN pip install --upgrade pip && \
     pip install tweepy wordcloud cassandra-driver==3.6 py2neo==3b1 keras pydot-ng && \
     # PyMC3 depends on tqdm (for now) but remove in future versions
     # https://github.com/pymc-devs/pymc3/pull/1408
-    pip install tqdm
+    pip install tqdm && \
+    pip install jupyterhub tensorflow
+
+# Activate ipywidgets extension in the environment that runs the notebook server
+RUN jupyter nbextension enable --py widgetsnbextension --sys-prefix
+
+# Configure ipython kernel to use matplotlib inline backend by default
+RUN mkdir -p $HOME/.ipython/profile_default/startup
+COPY mplimporthook.py $HOME/.ipython/profile_default/startup/
+
 
 # Configure container startup as root
 USER root
 
 RUN pip install git+git://github.com/EdwardJKim/nbgrader.git && \
     nbgrader extension install
-
-# Spark dependencies
-USER root
-ENV APACHE_SPARK_VERSION 2.0.1
-RUN apt-get -y update && \
-    apt-get install -y --no-install-recommends openjdk-7-jre-headless && \
-    apt-get clean && \
-    rm -rf /var/lib/apt/lists/* && \
-    cd /tmp && \
-    wget -q http://d3kbcqa49mib13.cloudfront.net/spark-${APACHE_SPARK_VERSION}-bin-hadoop2.7.tgz && \
-    tar xzf spark-${APACHE_SPARK_VERSION}-bin-hadoop2.7.tgz -C /usr/local && \
-    rm spark-${APACHE_SPARK_VERSION}-bin-hadoop2.7.tgz
-RUN cd /usr/local && ln -s spark-${APACHE_SPARK_VERSION}-bin-hadoop2.7 spark
-
-# Mesos dependencies
-RUN apt-key adv --keyserver keyserver.ubuntu.com --recv E56151BF && \
-    DISTRO=ubuntu && \
-    CODENAME=trusty && \
-    echo "deb http://repos.mesosphere.com/${DISTRO} ${CODENAME} main" > /etc/apt/sources.list.d/mesosphere.list && \
-    apt-get -y update && \
-    apt-get --no-install-recommends -y --force-yes install mesos && \
-    apt-get clean && \
-    rm -rf /var/lib/apt/lists/*
-
-# Spark and Mesos pointers
-ENV SPARK_HOME /usr/local/spark
-ENV PYTHONPATH $SPARK_HOME/python:$SPARK_HOME/python/lib/py4j-0.10.3-src.zip
-ENV MESOS_NATIVE_LIBRARY /usr/local/lib/libmesos.so
 
 EXPOSE 8888
 WORKDIR /home/$NB_USER

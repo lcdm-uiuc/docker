@@ -11,6 +11,11 @@ c = get_config()
 c.NotebookApp.ip = '*'
 c.NotebookApp.port = 8888
 c.NotebookApp.open_browser = False
+# authentication or access restrictions are handled at a different layer
+# so we will disable token authentication
+# http://jupyter-notebook.readthedocs.io/en/latest/security.html
+c.NotebookApp.token = ''
+c.NotebookApp.password = ''
 
 # Set a certificate if USE_HTTPS is set to any value
 if 'USE_HTTPS' in os.environ:
