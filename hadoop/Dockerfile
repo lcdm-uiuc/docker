@@ -118,9 +118,6 @@ RUN conda install --yes \
     && conda remove --quiet --yes --force qt pyqt \
     && conda clean -yt
 
-# Install JupyterHub to get the jupyterhub-singleuser startup script
-RUN pip --no-cache-dir install 'jupyterhub==0.7'
-
 # Activate ipywidgets extension in the environment that runs the notebook server
 RUN jupyter nbextension enable --py widgetsnbextension --sys-prefix
 
