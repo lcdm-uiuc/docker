@@ -114,7 +114,8 @@ RUN conda install --yes \
     'sqlalchemy=1.0*' \
     'sqlite=3.13*' \
     'joblib=0.9*' \
-    'tensorflow=0.10*' \ 
+    'tensorflow=0.10*' \
+    'mkl-service=1.1*' \
     && conda remove --quiet --yes --force qt pyqt \
     && conda clean -yt
 
@@ -127,7 +128,7 @@ COPY mplimporthook.py $HOME/.ipython/profile_default/startup/
 
 RUN pip install --upgrade pip && \
     pip install --no-deps git+git://github.com/Theano/Theano.git && \
-    pip install --no-deps git+git://github.com/pymc-devs/pymc3.git && \
+    pip install --no-deps git+git://github.com/pymc-devs/pymc3.git@v3.0 && \
     # cassandra-driver 3.7  has a bug, so downgrade to 3.6
     # https://datastax-oss.atlassian.net/browse/PYTHON-649
     pip install tweepy wordcloud cassandra-driver==3.6 py2neo==3b1 keras pydot-ng &&\
