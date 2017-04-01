@@ -114,7 +114,6 @@ RUN conda install --yes \
     'sqlalchemy=1.0*' \
     'sqlite=3.13*' \
     'joblib=0.9*' \
-    'tensorflow=0.10*' \
     'mkl-service=1.1*' \
     && conda remove --quiet --yes --force qt pyqt \
     && conda clean -yt
@@ -131,7 +130,7 @@ RUN pip install --upgrade pip && \
     pip install --no-deps git+git://github.com/pymc-devs/pymc3.git@v3.0 && \
     # cassandra-driver 3.7  has a bug, so downgrade to 3.6
     # https://datastax-oss.atlassian.net/browse/PYTHON-649
-    pip install tweepy wordcloud cassandra-driver==3.6 py2neo==3b1 keras pydot-ng &&\
+    pip install tweepy wordcloud cassandra-driver==3.6 py2neo==3b1 tensorflow==1.0.1 keras==2.0.2 pydot-ng &&\
     # PyMC3 depends on tqdm (for now) but remove in future versions
     # https://github.com/pymc-devs/pymc3/pull/1408
     pip install tqdm
