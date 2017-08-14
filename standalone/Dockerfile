@@ -64,51 +64,55 @@ RUN mkdir /home/$NB_USER/.jupyter && \
 # Install conda as data_scientist
 RUN cd /tmp && \
     mkdir -p $CONDA_DIR && \
-    wget --quiet https://repo.continuum.io/miniconda/Miniconda3-4.1.11-Linux-x86_64.sh && \
-    echo "efd6a9362fc6b4085f599a881d20e57de628da8c1a898c08ec82874f3bad41bf *Miniconda3-4.1.11-Linux-x86_64.sh" | sha256sum -c - && \
-    /bin/bash Miniconda3-4.1.11-Linux-x86_64.sh -f -b -p $CONDA_DIR && \
-    rm Miniconda3-4.1.11-Linux-x86_64.sh && \
-    $CONDA_DIR/bin/conda install --quiet --yes conda==4.1.11 && \
+    wget --quiet https://repo.continuum.io/miniconda/Miniconda3-4.3.21-Linux-x86_64.sh && \
+    /bin/bash Miniconda3-4.3.21-Linux-x86_64.sh -f -b -p $CONDA_DIR && \
+    rm Miniconda3-4.3.21-Linux-x86_64.sh && \
+    $CONDA_DIR/bin/conda install --quiet --yes conda==4.3.21 && \
     $CONDA_DIR/bin/conda config --system --add channels conda-forge && \
     $CONDA_DIR/bin/conda config --system --set auto_update_conda false && \
     conda clean -tipsy
 
 # Install Python 3 packages as data_scientist
 RUN conda install --yes \
-    'notebook=4.2*' \
-    jupyterhub=0.7 \
-    terminado \
+    'notebook=5.0*' \
+    'jupyterhub=0.7*' \
+    'terminado=0.6*' \
     'nose=1.3*' \
-    'ipywidgets=5.2*' \
-    'pandas=0.19*' \
-    'matplotlib=1.5*' \
-    'scipy=0.17*' \
-    'seaborn=0.7*' \
-    'scikit-learn=0.17*' \
-    'scikit-image=0.11*' \
-    'sympy=1.0*' \
-    'cython=0.23*' \
+    'ipywidgets=6.0*' \
+    'pandas=0.20*' \
+    'matplotlib=2.0*' \
+    'scipy=0.19*' \
+    'seaborn=0.8*' \
+    'scikit-learn=0.18*' \
+    'scikit-image=0.13*' \
+    'sympy=1.1*' \
+    'cython=0.26*' \
     'patsy=0.4*' \
-    'statsmodels=0.6*' \
-    'cloudpickle=0.1*' \
+    'statsmodels=0.8*' \
+    'cloudpickle=0.3*' \
     'dill=0.2*' \
-    'numba=0.23*' \
-    'bokeh=0.11*' \
-    'h5py=2.6*' \
-    'basemap=1.0*' \
+    'numba=0.34*' \
+    'bokeh=0.12*' \
+    'h5py=2.7*' \
+    'basemap=1.1*' \
     'beautifulsoup4=4.5*' \
-    'pytables=3.2*' \
+    'pytables=3.4*' \
     'graphviz=2.38*' \
-    'gensim=0.12*' \
-    'lxml=3.6' \
+    'gensim=2.2*' \
+    'lxml=3.8' \
     'networkx=1.11*' \
     'nltk=3.2*' \
     'pymongo=3.3*' \
     'snowballstemmer=1.2*' \
-    'sqlalchemy=1.0*' \
+    'sqlalchemy=1.1*' \
     'sqlite=3.13*' \
-    'joblib=0.9*' \
-    'tensorflow=0.10*' \ 
+    'joblib=0.11*' \
+    'tensorflow=1.2*' \
+    'theano=0.9*' \
+    'pymc3=3.1*' \
+    'tweepy=3.5*' \
+    'keras=2.0*' \
+    'py2neo=4.0' \
     && conda remove --quiet --yes --force qt pyqt \
     && conda clean -yt
 
@@ -119,20 +123,13 @@ RUN jupyter nbextension enable --py widgetsnbextension --sys-prefix
 RUN mkdir -p $HOME/.ipython/profile_default/startup
 COPY mplimporthook.py $HOME/.ipython/profile_default/startup/
 
-RUN pip install --upgrade pip && \
-    pip install --no-deps git+git://github.com/Theano/Theano.git && \
-    pip install --no-deps git+git://github.com/pymc-devs/pymc3.git && \
-    # cassandra-driver 3.7  has a bug, so downgrade to 3.6
-    # https://datastax-oss.atlassian.net/browse/PYTHON-649
-    pip install tweepy wordcloud cassandra-driver==3.6 py2neo==3b1 keras pydot-ng && \
-    # PyMC3 depends on tqdm (for now) but remove in future versions
-    # https://github.com/pymc-devs/pymc3/pull/1408
-    pip install tqdm
+RUN pip install pip --upgrade && \
+    pip install cassandra-driver==3.9 wordcloud==1.2 pydot-ng==1.0
 
 # Configure container startup as root
 USER root
 
-RUN pip install git+git://github.com/EdwardJKim/nbgrader.git && \
+RUN pip install nbgrader==0.5.2 && \
     nbgrader extension install
 
 # Spark dependencies
